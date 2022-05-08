@@ -1,0 +1,23 @@
+@import "../../../../styles/App.scss";
+
+.header {
+    &__eye {
+        width: max-content;
+        @extend .center_abs;
+
+        &__feild {
+            @extend .center_abs;
+            width: 25%;
+            height: 30%;
+            top: 40%;
+            &__black {
+                @extend .center_abs;
+                width: 10px;
+                height: 10px;
+                background: black;
+                border-radius: 50%;
+                z-index: 999;
+            }
+        }
+    }
+}
