@@ -1,68 +1,70 @@
-import { FC, useState, ReactElement, useEffect } from "react"
+import React, { FC, useState, ReactElement, useEffect, useRef, SyntheticEvent } from "react"
 import "./marquee.scss"
-import MarqueeItem from "./Item/Item"
 
-interface IMarqueItem {
-    ind: number,
-    value: null | ReactElement,
-    nextToBeOut: boolean
-}
 
 const Marquee: FC <{text: string}> = ({ text }) => {
-    const [first, setFirst] = useState<IMarqueItem>({
-        ind: 0,
-        value: null,
-        nextToBeOut: true
-    })
-    const [second, setSecond] = useState<IMarqueItem>({
-        ind: 1,
-        value: null,
-        nextToBeOut: false
-    })
+    const DOM_1 = useRef<HTMLParagraphElement>(null)
+    const DOM_2 = useRef<HTMLParagraphElement>(null)
+    const DOM_header = useRef<HTMLDivElement>(null)
+    const animation_duration = 10
+    // let animattion_spead = null
+ 
+    let pW: null | number = null
+    let headerWidth: null | number = null
 
-    function newText (key:number) {
-        return <MarqueeItem
-                    key={key}
-                    launchNext={() => launchNext(setFirst, setSecond)}
-                    deleteMe={() => deleteMe(setFirst,setSecond)} 
-                    text={text}/>
+    const start = (DOM: HTMLParagraphElement) => {
+        DOM.style.transition = `left ${animation_duration}s linear`
+        DOM.style.left = -pW! + "px"
     }
 
-    const launchNext = (setFirst: Function, setSecond: Function) => {
-        const toBeLaunched = first.nextToBeOut ? second : first
-
-        if(toBeLaunched.ind === 0) {
-            setFirst( (prev: IMarqueItem) => { return {...prev, value: newText(prev.ind), nextToBeOut: true }})
-            setSecond( (prev: IMarqueItem) => { return { ...prev, nextToBeOut: false  }})
-        }
-        else {
-            setSecond( (prev: IMarqueItem) => { return { ...prev, value: newText(prev.ind), nextToBeOut: true  }})
-            setFirst( (prev: IMarqueItem) => { return {...prev, nextToBeOut: false }})
-        }
+    const reset = (DOM: HTMLParagraphElement) => {
+        DOM.style.transition = "none"
+        DOM.style.left = headerWidth + "px"
     }
+    
+    useEffect(()=> {
+        // getting pW and headerWidth
+        pW = parseInt(getComputedStyle(DOM_1.current!).width)
+        headerWidth = parseInt(getComputedStyle(DOM_header.current!).width)
 
-    const deleteMe = (setFirst: Function, setSecond: Function) => {
-        const toBeDeleted = first.nextToBeOut ? first : second
+        // starting the first animation
+        start(DOM_1.current!)
+
+        // setting checker on if <p/> hit the start line
+        setInterval(() => {
+            let p_1 = parseInt(getComputedStyle(DOM_1.current!).left)
+            let p_2 = parseInt(getComputedStyle(DOM_2.current!).left)
+
+            if(p_1 < 0 && p_1 + pW! < headerWidth!)
+                start(DOM_2.current!)
+            if(p_2 < 0 && p_2 + pW! < headerWidth!)
+                start(DOM_1.current!)
+        }, 100)
         
-        if(toBeDeleted.ind === 0) {
-            setFirst( (prev: IMarqueItem) => { return {...prev, value: null, nextToBeOut: false }})
+        // hanging event listeners
+        const transitionListener_1 = () => {
+            reset(DOM_1.current!)
         }
-        else {
-            setSecond( (prev: IMarqueItem) => { return { ...prev, value: null, nextToBeOut: false  }})
+
+        const transitionListener_2 = () => {
+            reset(DOM_2.current!)
         }
-    }
+        // console.log(DOM_1)
+        DOM_1.current!.addEventListener("transitionend", transitionListener_1)
+        DOM_2.current!.addEventListener("transitionend", transitionListener_2)
 
-    useEffect(() => {
-        setFirst( (prev) => {return {
-            ...prev,
-            value: newText(prev.ind)
-            }
-        })
-    }, [])
+        return () => {
+            DOM_1.current!.removeEventListener("transitionend", transitionListener_1)
+            DOM_2.current!.removeEventListener("transitionend", transitionListener_2)
+            reset(DOM_1.current!)
+            reset(DOM_2.current!)
+        }
+    }, [DOM_1, DOM_2, text])
 
-    return (<div className="marquee">
-        { first.value }
-        { second.value }
+
+    return (<div ref={DOM_header} className="marquee">
+        <p ref={DOM_1} className="marquee__item">{text}</p>
+        <p ref={DOM_2} className="marquee__item">{text}</p>
     </div>)
 } 
 
